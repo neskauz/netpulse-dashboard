@@ -1,0 +1,52 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NETPULSE | Monitoramento de Rede</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>NETPULSE</h1>
+        <p>Network Monitoring Dashboard</p>
+    </header>
+
+    <main>
+        <section class="overview">
+            <h2>Visão geral da rede</h2>
+
+            <div class="cards">
+                <div class="card">
+                    <h3>Dispositivos</h3>
+                    <p id="devices">12</p>
+                </div>
+
+                <div class="card">
+                    <h3>Online</h3>
+                    <p id="online">10</p>
+                </div>
+
+                <div class="card">
+                    <h3>Offline</h3>
+                    <p id="offline">2</p>
+                </div>
+
+                <div class="card">
+                    <h3>Latência média</h3>
+                    <p id="latency">24 ms</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Dispositivos monitorados</h2>
+            <div id="device-list"></div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
