@@ -50,3 +50,18 @@ function renderDashboard() {
 }
 
 renderDashboard();
+
+
+const refreshButton = document.getElementById("refresh-btn");
+const lastUpdate = document.getElementById("last-update");
+
+refreshButton.addEventListener("click", () => {
+    renderDashboard();
+
+    const now = new Date();
+
+    lastUpdate.textContent =
+        "Última atualização: " +
+        now.toLocaleTimeString("pt-BR");
+});
+
