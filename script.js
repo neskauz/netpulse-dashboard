@@ -9,9 +9,7 @@ const devices = [
 ];
 
 let currentFilter = "all";
-let history = [];
-
-history = JSON.parse(localStorage.getItem("netpulse-history")) || [];
+let history = JSON.parse(localStorage.getItem("netpulse-history")) || [];
 
 function renderDashboard() {
     const online = devices.filter(d => d.status === "online");
@@ -29,35 +27,29 @@ function renderDashboard() {
     const list = document.getElementById("device-list");
     list.innerHTML = "";
 
-    const filtered = devices.filter(device =>
-        currentFilter === "all" || device.status === currentFilter
-    );
+    devices
+        .filter(d => currentFilter === "all" || d.status === currentFilter)
+        .forEach(device => {
+            const item = document.createElement("div");
+            item.className = "device";
 
-    filtered.forEach(device => {
-        const item = document.createElement("div");
-        item.className = "device";
+            const info = document.createElement("div");
+            info.innerHTML = `<strong>${device.name}</strong><p>${device.ip}</p>`;
 
-        const info = document.createElement("div");
-        const name = document.createElement("strong");
-        const ip = document.createElement("p");
+            const status = document.createElement("div");
+            const indicator = document.createElement("span");
+            indicator.className = device.status;
+            indicator.textContent = device.status === "online" ? "● Online" : "● Offline";
 
-        name.textContent = device.name;
-        ip.textContent = device.ip;
+            const latency = document.createElement("p");
+            latency.textContent = device.status === "online"
+                ? device.latency + " ms"
+                : "—";
 
-        info.append(name, ip);
-
-        const status = document.createElement("div");
-        const indicator = document.createElement("span");
-        const latency = document.createElement("p");
-
-        indicator.className = device.status;
-        indicator.textContent = device.status === "online" ? "● Online" : "● Offline";
-        latency.textContent = device.status === "online" ? device.latency + " ms" : "—";
-
-        status.append(indicator, latency);
-        item.append(info, status);
-        list.appendChild(item);
-    });
+            status.append(indicator, latency);
+            item.append(info, status);
+            list.appendChild(item);
+        });
 
     renderHistory();
 }
@@ -72,14 +64,73 @@ function renderHistory() {
         item.textContent = `${entry.time} — ${entry.latency} ms`;
         container.appendChild(item);
     });
+
+    drawChart();
+}
+
+function drawChart() {
+    const canvas = document.getElementById("latency-chart");
+    const ctx = canvas.getContext("2d");
+
+    const width = canvas.clientWidth;
+    const height = 240;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    const data = history.slice(-10);
+
+    if (data.length === 0) {
+        ctx.fillStyle = "#999";
+        ctx.font = "14px Arial";
+        ctx.fillText("Clique em atualizar para gerar medições.", 15, 35);
+        return;
+    }
+
+    const max = Math.max(...data.map(d => d.latency), 10) * 1.2;
+    const padding = 30;
+    const chartWidth = width - padding * 2;
+    const chartHeight = height - padding * 2;
+
+    ctx.strokeStyle = "#30213f";
+    ctx.lineWidth = 1;
+
+    for (let i = 0; i < 4; i++) {
+        const y = padding + (chartHeight / 3) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+    }
+
+    ctx.strokeStyle = "#a855f7";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+
+    data.forEach((entry, index) => {
+        const x = data.length === 1
+            ? width / 2
+            : padding + (chartWidth / (data.length - 1)) * index;
+
+        const y = height - padding - (entry.latency / max) * chartHeight;
+
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    });
+
+    ctx.stroke();
 }
 
 document.getElementById("refresh-btn").addEventListener("click", () => {
     const online = devices.filter(d => d.status === "online");
 
-    // Simulação: gera pequenas variações de latência.
     online.forEach(device => {
-        device.latency = Math.max(1, device.latency + Math.round(Math.random() * 10 - 5));
+        device.latency = Math.max(
+            1,
+            device.latency + Math.round(Math.random() * 10 - 5)
+        );
     });
 
     const average = online.length
@@ -91,13 +142,10 @@ document.getElementById("refresh-btn").addEventListener("click", () => {
         latency: average
     });
 
-if (history.length > 50) {
     history = history.slice(-50);
-}
 
-    
-localStorage.setItem("netpulse-history", JSON.stringify(history));
-    
+    localStorage.setItem("netpulse-history", JSON.stringify(history));
+
     document.getElementById("last-update").textContent =
         "Última atualização: " + new Date().toLocaleTimeString("pt-BR");
 
@@ -108,12 +156,13 @@ document.querySelectorAll(".filter").forEach(button => {
     button.addEventListener("click", () => {
         currentFilter = button.dataset.filter;
 
-        document.querySelectorAll(".filter").forEach(b => b.classList.remove("active"));
-        button.classList.add("active");
+        document.querySelectorAll(".filter").forEach(b =>
+            b.classList.remove("active")
+        );
 
+        button.classList.add("active");
         renderDashboard();
     });
 });
 
 renderDashboard();
-
