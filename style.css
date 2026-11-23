@@ -87,3 +87,35 @@ h2 {
         padding: 16px;
     }
 }
+
+
+.monitor-controls {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+#refresh-btn {
+    background: #9333ea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#refresh-btn:hover {
+    background: #a855f7;
+    transform: translateY(-2px);
+}
+
+#last-update {
+    color: #999;
+    font-size: 13px;
+}
+
