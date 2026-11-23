@@ -8,60 +8,103 @@ const devices = [
     { name: "Servidor Backup", ip: "192.168.1.3", status: "offline", latency: 0 }
 ];
 
+let currentFilter = "all";
+let history = [];
+
 function renderDashboard() {
-    const online = devices.filter(device => device.status === "online").length;
-    const offline = devices.length - online;
+    const online = devices.filter(d => d.status === "online");
+    const offline = devices.filter(d => d.status === "offline");
 
-    const latencies = devices
-        .filter(device => device.status === "online")
-        .map(device => device.latency);
-
-    const average = latencies.length
-        ? Math.round(latencies.reduce((sum, value) => sum + value, 0) / latencies.length)
+    const average = online.length
+        ? Math.round(online.reduce((sum, d) => sum + d.latency, 0) / online.length)
         : 0;
 
     document.getElementById("devices").textContent = devices.length;
-    document.getElementById("online").textContent = online;
-    document.getElementById("offline").textContent = offline;
+    document.getElementById("online").textContent = online.length;
+    document.getElementById("offline").textContent = offline.length;
     document.getElementById("latency").textContent = average + " ms";
 
     const list = document.getElementById("device-list");
     list.innerHTML = "";
 
-    devices.forEach(device => {
+    const filtered = devices.filter(device =>
+        currentFilter === "all" || device.status === currentFilter
+    );
+
+    filtered.forEach(device => {
         const item = document.createElement("div");
         item.className = "device";
 
-        item.innerHTML = `
-            <div>
-                <strong>${device.name}</strong>
-                <p>${device.ip}</p>
-            </div>
-            <div>
-                <span class="${device.status}">
-                    ${device.status === "online" ? "● Online" : "● Offline"}
-                </span>
-                <p>${device.status === "online" ? device.latency + " ms" : "—"}</p>
-            </div>
-        `;
+        const info = document.createElement("div");
+        const name = document.createElement("strong");
+        const ip = document.createElement("p");
 
+        name.textContent = device.name;
+        ip.textContent = device.ip;
+
+        info.append(name, ip);
+
+        const status = document.createElement("div");
+        const indicator = document.createElement("span");
+        const latency = document.createElement("p");
+
+        indicator.className = device.status;
+        indicator.textContent = device.status === "online" ? "● Online" : "● Offline";
+        latency.textContent = device.status === "online" ? device.latency + " ms" : "—";
+
+        status.append(indicator, latency);
+        item.append(info, status);
         list.appendChild(item);
+    });
+
+    renderHistory();
+}
+
+function renderHistory() {
+    const container = document.getElementById("latency-history");
+    container.innerHTML = "";
+
+    history.slice(-8).forEach(entry => {
+        const item = document.createElement("div");
+        item.className = "history-item";
+        item.textContent = `${entry.time} — ${entry.latency} ms`;
+        container.appendChild(item);
     });
 }
 
-renderDashboard();
+document.getElementById("refresh-btn").addEventListener("click", () => {
+    const online = devices.filter(d => d.status === "online");
 
+    // Simulação: gera pequenas variações de latência.
+    online.forEach(device => {
+        device.latency = Math.max(1, device.latency + Math.round(Math.random() * 10 - 5));
+    });
 
-const refreshButton = document.getElementById("refresh-btn");
-const lastUpdate = document.getElementById("last-update");
+    const average = online.length
+        ? Math.round(online.reduce((sum, d) => sum + d.latency, 0) / online.length)
+        : 0;
 
-refreshButton.addEventListener("click", () => {
+    history.push({
+        time: new Date().toLocaleTimeString("pt-BR"),
+        latency: average
+    });
+
+    document.getElementById("last-update").textContent =
+        "Última atualização: " + new Date().toLocaleTimeString("pt-BR");
+
     renderDashboard();
-
-    const now = new Date();
-
-    lastUpdate.textContent =
-        "Última atualização: " +
-        now.toLocaleTimeString("pt-BR");
 });
+
+document.querySelectorAll(".filter").forEach(button => {
+    button.addEventListener("click", () => {
+        currentFilter = button.dataset.filter;
+
+        document.querySelectorAll(".filter").forEach(b => b.classList.remove("active"));
+        button.classList.add("active");
+
+        renderDashboard();
+    });
+});
+
+renderDashboard();
 
