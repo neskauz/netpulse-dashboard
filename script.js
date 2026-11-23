@@ -11,6 +11,8 @@ const devices = [
 let currentFilter = "all";
 let history = [];
 
+history = JSON.parse(localStorage.getItem("netpulse-history")) || [];
+
 function renderDashboard() {
     const online = devices.filter(d => d.status === "online");
     const offline = devices.filter(d => d.status === "offline");
@@ -89,6 +91,13 @@ document.getElementById("refresh-btn").addEventListener("click", () => {
         latency: average
     });
 
+if (history.length > 50) {
+    history = history.slice(-50);
+}
+
+    
+localStorage.setItem("netpulse-history", JSON.stringify(history));
+    
     document.getElementById("last-update").textContent =
         "Última atualização: " + new Date().toLocaleTimeString("pt-BR");
 
