@@ -1,13 +1,16 @@
-
 import json
 import platform
 import subprocess
+import time
+
+from urllib.parse import urlsplit
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+
 
 DEVICES = [
     {"name": "Servidor Principal", "ip": "192.168.1.1"},
     {"name": "Servidor DNS", "ip": "192.168.1.2"},
-    {"name": "Roteador Principal", "ip": "192.168.1.254"},
+    {"name": "Roteador Principal", "ip": "192.168.18.1"},
     {"name": "Switch Sala 1", "ip": "192.168.1.10"},
     {"name": "Access Point", "ip": "192.168.1.20"},
     {"name": "Servidor Backup", "ip": "192.168.1.3"}
@@ -15,38 +18,29 @@ DEVICES = [
 
 
 def check_device(device):
-    system = platform.system().lower()
-
-    if system == "windows":
+    if platform.system().lower() == "windows":
         command = ["ping", "-n", "1", "-w", "1000", device["ip"]]
     else:
         command = ["ping", "-c", "1", "-W", "1", device["ip"]]
 
     try:
+        start = time.perf_counter()
+
         result = subprocess.run(
             command,
             capture_output=True,
             text=True,
+            errors="replace",
             timeout=3
         )
 
-        output = result.stdout
+        elapsed = (time.perf_counter() - start) * 1000
 
         if result.returncode == 0:
-            latency = None
-
-            for part in output.replace("=", " ").split():
-                if part.lower().startswith("time"):
-                    try:
-                        latency = float(part.split("<")[-1].replace("ms", ""))
-                        break
-                    except ValueError:
-                        pass
-
             return {
                 **device,
                 "status": "online",
-                "latency": latency
+                "latency": round(elapsed)
             }
 
         return {
@@ -66,7 +60,9 @@ def check_device(device):
 class MonitorHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
-        if self.path == "/api/devices":
+        path = urlsplit(self.path).path
+
+        if path == "/api/devices":
             results = [check_device(device) for device in DEVICES]
 
             data = json.dumps(results).encode("utf-8")
@@ -75,7 +71,9 @@ class MonitorHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
+
             self.wfile.write(data)
+
         else:
             super().do_GET()
 
