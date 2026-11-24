@@ -1,50 +1,134 @@
-
-const devices = [
-    { name: "Servidor Principal", ip: "192.168.1.1", status: "online", latency: 12 },
-    { name: "Servidor DNS", ip: "192.168.1.2", status: "online", latency: 18 },
-    { name: "Roteador Principal", ip: "192.168.1.254", status: "online", latency: 8 },
-    { name: "Switch Sala 1", ip: "192.168.1.10", status: "offline", latency: 0 },
-    { name: "Access Point", ip: "192.168.1.20", status: "online", latency: 25 },
-    { name: "Servidor Backup", ip: "192.168.1.3", status: "offline", latency: 0 }
-];
-
+let devices = [];
 let currentFilter = "all";
-let history = JSON.parse(localStorage.getItem("netpulse-history")) || [];
+
+let history = JSON.parse(
+    localStorage.getItem("netpulse-real-history") || "[]"
+);
+
+async function updateDevices() {
+    const button = document.getElementById("refresh-btn");
+    const lastUpdate = document.getElementById("last-update");
+
+    button.disabled = true;
+
+    try {
+        const response = await fetch("/api/devices", {
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            throw new Error("API indisponível (HTTP " + response.status + ")");
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+            throw new Error("Resposta inválida da API");
+        }
+
+        devices = data;
+
+        const measurable = devices.filter(
+            device => device.status === "online"
+                && typeof device.latency === "number"
+                && Number.isFinite(device.latency)
+        );
+
+        if (measurable.length > 0) {
+            const average = Math.round(
+                measurable.reduce((sum, device) => sum + device.latency, 0)
+                / measurable.length
+            );
+
+            history.push({
+                time: new Date().toLocaleTimeString("pt-BR"),
+                latency: average
+            });
+
+            history = history.slice(-50);
+            localStorage.setItem(
+                "netpulse-real-history",
+                JSON.stringify(history)
+            );
+        }
+
+        lastUpdate.textContent =
+            "Última atualização: " +
+            new Date().toLocaleTimeString("pt-BR");
+
+        renderDashboard();
+
+    } catch (error) {
+        console.error("NETPULSE:", error);
+        lastUpdate.textContent =
+            error.message + " — execute monitor.py localmente.";
+
+        if (devices.length === 0) {
+            renderDashboard();
+        }
+    } finally {
+        button.disabled = false;
+    }
+}
 
 function renderDashboard() {
-    const online = devices.filter(d => d.status === "online");
-    const offline = devices.filter(d => d.status === "offline");
+    const online = devices.filter(device => device.status === "online");
+    const offline = devices.filter(device => device.status === "offline");
 
-    const average = online.length
-        ? Math.round(online.reduce((sum, d) => sum + d.latency, 0) / online.length)
-        : 0;
+    const measurable = online.filter(
+        device => typeof device.latency === "number"
+            && Number.isFinite(device.latency)
+    );
+
+    const average = measurable.length
+        ? Math.round(
+            measurable.reduce((sum, device) => sum + device.latency, 0)
+            / measurable.length
+        )
+        : null;
 
     document.getElementById("devices").textContent = devices.length;
     document.getElementById("online").textContent = online.length;
     document.getElementById("offline").textContent = offline.length;
-    document.getElementById("latency").textContent = average + " ms";
+    document.getElementById("latency").textContent =
+        average === null ? "—" : average + " ms";
 
     const list = document.getElementById("device-list");
     list.innerHTML = "";
 
     devices
-        .filter(d => currentFilter === "all" || d.status === currentFilter)
+        .filter(device =>
+            currentFilter === "all" || device.status === currentFilter
+        )
         .forEach(device => {
             const item = document.createElement("div");
             item.className = "device";
 
             const info = document.createElement("div");
-            info.innerHTML = `<strong>${device.name}</strong><p>${device.ip}</p>`;
+
+            const name = document.createElement("strong");
+            name.textContent = device.name;
+
+            const ip = document.createElement("p");
+            ip.textContent = device.ip;
+
+            info.append(name, ip);
 
             const status = document.createElement("div");
+
             const indicator = document.createElement("span");
             indicator.className = device.status;
-            indicator.textContent = device.status === "online" ? "● Online" : "● Offline";
+            indicator.textContent = device.status === "online"
+                ? "● Online"
+                : "● Offline";
 
             const latency = document.createElement("p");
-            latency.textContent = device.status === "online"
-                ? device.latency + " ms"
-                : "—";
+            latency.textContent =
+                device.status === "online"
+                && typeof device.latency === "number"
+                && Number.isFinite(device.latency)
+                    ? device.latency + " ms"
+                    : "—";
 
             status.append(indicator, latency);
             item.append(info, status);
@@ -61,7 +145,7 @@ function renderHistory() {
     history.slice(-8).forEach(entry => {
         const item = document.createElement("div");
         item.className = "history-item";
-        item.textContent = `${entry.time} — ${entry.latency} ms`;
+        item.textContent = entry.time + " — " + entry.latency + " ms";
         container.appendChild(item);
     });
 
@@ -72,12 +156,11 @@ function drawChart() {
     const canvas = document.getElementById("latency-chart");
     const ctx = canvas.getContext("2d");
 
-    const width = canvas.clientWidth;
+    const width = canvas.clientWidth || 600;
     const height = 240;
 
     canvas.width = width;
     canvas.height = height;
-
     ctx.clearRect(0, 0, width, height);
 
     const data = history.slice(-10);
@@ -85,11 +168,11 @@ function drawChart() {
     if (data.length === 0) {
         ctx.fillStyle = "#999";
         ctx.font = "14px Arial";
-        ctx.fillText("Clique em atualizar para gerar medições.", 15, 35);
+        ctx.fillText("Aguardando medições reais...", 15, 35);
         return;
     }
 
-    const max = Math.max(...data.map(d => d.latency), 10) * 1.2;
+    const max = Math.max(...data.map(entry => entry.latency), 10) * 1.2;
     const padding = 30;
     const chartWidth = width - padding * 2;
     const chartHeight = height - padding * 2;
@@ -114,55 +197,36 @@ function drawChart() {
             ? width / 2
             : padding + (chartWidth / (data.length - 1)) * index;
 
-        const y = height - padding - (entry.latency / max) * chartHeight;
+        const y = height - padding
+            - (entry.latency / max) * chartHeight;
 
-        if (index === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+        if (index === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
     });
 
     ctx.stroke();
 }
 
-document.getElementById("refresh-btn").addEventListener("click", () => {
-    const online = devices.filter(d => d.status === "online");
-
-    online.forEach(device => {
-        device.latency = Math.max(
-            1,
-            device.latency + Math.round(Math.random() * 10 - 5)
-        );
-    });
-
-    const average = online.length
-        ? Math.round(online.reduce((sum, d) => sum + d.latency, 0) / online.length)
-        : 0;
-
-    history.push({
-        time: new Date().toLocaleTimeString("pt-BR"),
-        latency: average
-    });
-
-    history = history.slice(-50);
-
-    localStorage.setItem("netpulse-history", JSON.stringify(history));
-
-    document.getElementById("last-update").textContent =
-        "Última atualização: " + new Date().toLocaleTimeString("pt-BR");
-
-    renderDashboard();
-});
+document.getElementById("refresh-btn").addEventListener(
+    "click",
+    updateDevices
+);
 
 document.querySelectorAll(".filter").forEach(button => {
     button.addEventListener("click", () => {
         currentFilter = button.dataset.filter;
 
-        document.querySelectorAll(".filter").forEach(b =>
-            b.classList.remove("active")
-        );
+        document.querySelectorAll(".filter").forEach(filter => {
+            filter.classList.remove("active");
+        });
 
         button.classList.add("active");
         renderDashboard();
     });
 });
 
-renderDashboard();
+updateDevices();
+setInterval(updateDevices, 10000);
