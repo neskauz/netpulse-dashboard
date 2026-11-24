@@ -1,9 +1,20 @@
 let devices = [];
 let currentFilter = "all";
+let isDemoMode = false;
 
 let history = JSON.parse(
     localStorage.getItem("netpulse-real-history") || "[]"
 );
+
+// Dados ilustrativos usados somente quando o projeto está no GitHub Pages.
+const demoDevices = [
+    { name: "Servidor Principal", ip: "192.168.1.1", status: "online", latency: 12 },
+    { name: "Servidor DNS", ip: "192.168.1.2", status: "online", latency: 18 },
+    { name: "Roteador Principal", ip: "192.168.18.1", status: "online", latency: 8 },
+    { name: "Switch Sala 1", ip: "192.168.1.10", status: "offline", latency: null },
+    { name: "Access Point", ip: "192.168.1.20", status: "online", latency: 25 },
+    { name: "Servidor Backup", ip: "192.168.1.3", status: "offline", latency: null }
+];
 
 async function updateDevices() {
     const button = document.getElementById("refresh-btn");
@@ -27,6 +38,7 @@ async function updateDevices() {
         }
 
         devices = data;
+        isDemoMode = false;
 
         const measurable = devices.filter(
             device => device.status === "online"
@@ -53,20 +65,17 @@ async function updateDevices() {
         }
 
         lastUpdate.textContent =
-            "Última atualização: " +
+            "Monitoramento local ativo • " +
             new Date().toLocaleTimeString("pt-BR");
 
-        renderDashboard();
-
     } catch (error) {
-        console.error("NETPULSE:", error);
+        console.info("NETPULSE: exibindo dados demonstrativos.", error);
+        devices = demoDevices;
+        isDemoMode = true;
         lastUpdate.textContent =
-            error.message + " — execute monitor.py localmente.";
-
-        if (devices.length === 0) {
-            renderDashboard();
-        }
+            "Modo demonstração — dados ilustrativos; execute monitor.py para monitoramento real.";
     } finally {
+        renderDashboard();
         button.disabled = false;
     }
 }
