@@ -1,102 +1,63 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NETPULSE — dashboard de monitoramento de conectividade de rede.">
     <title>NETPULSE | Monitoramento de Rede</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <header>
         <h1>NETPULSE</h1>
         <p>Network Monitoring Dashboard</p>
     </header>
 
-    
-<main>
-    <section class="overview">
-        <h2>Visão geral da rede</h2>
-
-        <div class="monitor-controls">
-            <button id="refresh-btn">⟳ Atualizar monitoramento</button>
-            <span id="last-update">Aguardando atualização</span>
-        </div>
-
-        <div class="cards">
-            <div class="card">
-                <h3>Dispositivos</h3>
-                <p id="devices">0</p>
-            </div>
-            <div class="card">
-                <h3>Online</h3>
-                <p id="online">0</p>
-            </div>
-            <div class="card">
-                <h3>Offline</h3>
-                <p id="offline">0</p>
-            </div>
-            <div class="card">
-                <h3>Latência média</h3>
-                <p id="latency">0 ms</p>
-            </div>
-        </div>
-    </section>
-
-    <section>
-        <h2>Dispositivos monitorados</h2>
-
-        <div class="filters">
-            <button class="filter active" data-filter="all">Todos</button>
-            <button class="filter" data-filter="online">Online</button>
-            <button class="filter" data-filter="offline">Offline</button>
-        </div>
-
-        <div id="device-list"></div>
-    </section>
-
-    <section class="history-section">
-    <h2>Histórico de latência</h2>
-    <div class="chart-container">
-        <canvas id="latency-chart"></canvas>
-    </div>
-    <div id="latency-history"></div>
-</section>
-</main>
-
+    <main>
+        <section class="overview">
+            <h2>Visão geral da rede</h2>
 
             <div class="monitor-controls">
-    <button id="refresh-btn">⟳ Atualizar monitoramento</button>
-    <span id="last-update">Aguardando atualização</span>
-</div>
+                <button id="refresh-btn" type="button">⟳ Atualizar monitoramento</button>
+                <span id="last-update" role="status">Aguardando atualização</span>
+            </div>
 
             <div class="cards">
                 <div class="card">
                     <h3>Dispositivos</h3>
-                    <p id="devices">12</p>
+                    <p id="devices">0</p>
                 </div>
-
                 <div class="card">
                     <h3>Online</h3>
-                    <p id="online">10</p>
+                    <p id="online">0</p>
                 </div>
-
                 <div class="card">
                     <h3>Offline</h3>
-                    <p id="offline">2</p>
+                    <p id="offline">0</p>
                 </div>
-
                 <div class="card">
                     <h3>Latência média</h3>
-                    <p id="latency">24 ms</p>
+                    <p id="latency">—</p>
                 </div>
             </div>
         </section>
 
         <section>
             <h2>Dispositivos monitorados</h2>
+            <div class="filters">
+                <button class="filter active" data-filter="all" type="button">Todos</button>
+                <button class="filter" data-filter="online" type="button">Online</button>
+                <button class="filter" data-filter="offline" type="button">Offline</button>
+            </div>
             <div id="device-list"></div>
+        </section>
+
+        <section class="history-section">
+            <h2>Histórico de latência</h2>
+            <div class="chart-container">
+                <canvas id="latency-chart"></canvas>
+            </div>
+            <div id="latency-history"></div>
         </section>
     </main>
 
